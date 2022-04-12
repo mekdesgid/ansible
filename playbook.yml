@@ -1,0 +1,48 @@
+---
+- hosts: "{{ group }}"
+  become: true
+
+
+  tasks:
+
+  - name: Update apt repo and cache on all Debian/Ubuntu boxes
+    apt:
+     update_cache: yes
+     force_apt_get: yes
+     cache_valid_time: 3600
+
+  - name: Transfer file from agentServer to hosting servers
+    synchronize:
+      src: /home/adminuser/myagent/_work/1/s/
+      dest: /home/adminuser/bootcamp-app
+
+
+
+  - name: Update nodejs package
+
+    shell: curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+
+  - name: Install nodejs
+    become: true
+    shell: apt-get install -y nodejs
+
+
+  - name: Install node dependencies
+    shell: npm install
+    become: true
+    args:
+      chdir: "/home/adminuser/bootcamp-app"
+
+  - name: Database initialization
+    shell: npm run initdb
+    args:
+      chdir: "/home/adminuser/bootcamp-app"
+
+  - name: Install pm2
+    shell: npm install pm2@latest -g
+
+
+  - name: Run application
+    shell: pm2 start npm -- run dev && pm2 save && pm2 startup
+    args:
+      chdir: "/home/adminuser/bootcamp-app"
